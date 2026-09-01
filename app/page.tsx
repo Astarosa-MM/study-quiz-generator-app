@@ -70,7 +70,7 @@ export default function Home() {
               <legend className="text-[0.95rem] font-bold">Quiz length</legend>
               <p className="mt-1.5 text-sm text-muted-foreground">How many questions would you like?</p>
               <div className="mt-3 grid grid-cols-3 gap-3 sm:max-w-md">
-                {quizLengths.map((length) => <button key={length} type="button" aria-pressed={quizLength === length} onClick={() => setQuizLength(length)} className="rounded-xl border border-border bg-card px-3 py-3 text-sm font-bold shadow-sm transition hover:border-primary/35 hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 aria-pressed:border-primary aria-pressed:bg-accent aria-pressed:text-primary">{length} questions</button>)}
+                {quizLengths.map((length) => <button key={length} type="button" aria-pressed={quizLength === length} onClick={() => setQuizLength(length)} className="rounded-xl border border-border bg-card px-3 py-3 text-sm font-bold shadow-sm transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out will-change-transform hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_12px_28px_rgb(18_40_32/10%)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 aria-pressed:border-primary aria-pressed:bg-accent aria-pressed:text-primary">{length} questions</button>)}
               </div>
             </fieldset>
 
@@ -92,10 +92,10 @@ export default function Home() {
             <fieldset>
               <legend className="text-[0.95rem] font-bold">Difficulty</legend>
               <p className="mt-1.5 text-sm text-muted-foreground">Choose how challenging your quiz should feel.</p>
-              <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card shadow-sm sm:grid sm:grid-cols-3">
-                {difficulties.map(({ value, label, description }, index) => {
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {difficulties.map(({ value, label, description }) => {
                   const selected = difficulty === value;
-                  return <button key={value} type="button" aria-pressed={selected} onClick={() => setDifficulty(value)} className={`relative w-full px-5 py-4 text-left transition hover:bg-accent focus-visible:z-10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/40 aria-pressed:bg-accent ${index > 0 ? 'border-t border-border sm:border-l sm:border-t-0' : ''}`}>
+                  return <button key={value} type="button" aria-pressed={selected} onClick={() => setDifficulty(value)} className="relative w-full rounded-2xl border border-border bg-card px-5 py-4 text-left shadow-sm transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out will-change-transform hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_12px_28px_rgb(18_40_32/10%)] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 aria-pressed:border-primary aria-pressed:bg-accent">
                     <span className="flex items-center justify-between gap-3 text-sm font-bold">{label}<span className={`size-3 rounded-full border-2 ${selected ? 'border-primary bg-primary ring-2 ring-primary/15 ring-offset-2' : 'border-border'}`} /></span>
                     <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
                   </button>;
