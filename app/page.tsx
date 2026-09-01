@@ -80,7 +80,7 @@ export default function Home() {
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {questionTypes.map(({ value, label, description, icon: Icon }) => {
                   const selected = questionType === value;
-                  return <button key={value} type="button" aria-pressed={selected} onClick={() => setQuestionType(value)} className="group relative rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 aria-pressed:border-primary aria-pressed:bg-accent">
+                  return <button key={value} type="button" aria-pressed={selected} onClick={() => setQuestionType(value)} className="group relative rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out will-change-transform hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_12px_28px_rgb(18_40_32/10%)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 aria-pressed:border-primary aria-pressed:bg-accent">
                     <span className="mb-4 grid size-9 place-items-center rounded-xl bg-secondary text-secondary-foreground transition group-aria-pressed:bg-primary group-aria-pressed:text-primary-foreground"><Icon className="size-4.5" aria-hidden="true" /></span>
                     <span className="block pr-6 text-sm font-bold">{label}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
                     {selected && <Check className="absolute right-4 top-4 size-4 text-primary" aria-hidden="true" />}
