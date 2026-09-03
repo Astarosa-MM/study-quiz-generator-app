@@ -13,6 +13,7 @@ type QuizSetup = {
   questionType: string;
   difficulty: string;
   quizSeed?: number;
+  retryQuestions?: GeneratedQuestion[];
 };
 
 type GeneratedQuestion = {
@@ -174,7 +175,7 @@ function subscribeToHydration() {
 export default function QuizPage() {
   const isHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const setup = isHydrated ? readSetup() : null;
-  const questions = setup ? generateQuestions(setup) : [];
+  const questions = setup ? (setup.retryQuestions ?? generateQuestions(setup)) : [];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
 

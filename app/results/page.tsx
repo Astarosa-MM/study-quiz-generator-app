@@ -37,6 +37,25 @@ export default function ResultsPage() {
   const incorrect = result.totalQuestions - result.score;
   const message = percentage === 100 ? 'Perfect recall!' : percentage >= 80 ? 'Great work!' : percentage >= 60 ? 'Nice progress!' : 'Keep practicing!';
 
+  function retryMissedQuestions() {
+    const retryQuestions = result!.questions
+      .filter((question) => question.selectedAnswer !== question.correctAnswer)
+      .map((question) => ({
+        prompt: question.prompt,
+        choices: question.choices,
+        answer: question.correctAnswer,
+      }));
+
+    window.sessionStorage.setItem('recall-quiz-setup', JSON.stringify({
+      notes: '',
+      quizLength: retryQuestions.length,
+      questionType: result!.questionType,
+      difficulty: result!.difficulty,
+      retryQuestions,
+    }));
+    window.location.assign('/quiz');
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/80 bg-background/90 backdrop-blur-xl">
@@ -69,7 +88,8 @@ export default function ResultsPage() {
           </div>
 
           <div className="flex flex-col gap-3 p-5 sm:flex-row sm:justify-center sm:p-7">
-            <Button nativeButton={false} render={<Link href="/" />} size="lg" className="h-11 rounded-xl px-5"><RotateCcw data-icon="inline-start" />Create another quiz</Button>
+            {incorrect > 0 && <Button type="button" onClick={retryMissedQuestions} size="lg" className="h-11 rounded-xl px-5"><RotateCcw data-icon="inline-start" />Retry missed questions</Button>}
+            <Button nativeButton={false} render={<Link href="/" />} variant={incorrect > 0 ? 'outline' : 'default'} size="lg" className="h-11 rounded-xl px-5">Create another quiz</Button>
             <Button nativeButton={false} render={<Link href="/history" />} variant="outline" size="lg" className="h-11 rounded-xl px-5">View history<ArrowRight data-icon="inline-end" /></Button>
           </div>
         </section>
@@ -107,4 +127,3 @@ export default function ResultsPage() {
     </main>
   );
 }
-
