@@ -1,10 +1,10 @@
 'use client';
+/* eslint-disable jsx-a11y/prefer-tag-over-role -- The rich-text editor requires contenteditable textbox semantics. */
 
-import { useState } from 'react';
-import { ArrowRight, BookOpen, Check, CircleHelp, FileText, Gauge, ListChecks, Sparkles } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ArrowRight, Bold, BookOpen, Check, CircleHelp, Gauge, Italic, List, ListChecks, ListOrdered, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
 const quizLengths = [5, 10, 15];
 const questionTypes = [
@@ -19,6 +19,7 @@ const difficulties = [
 ];
 
 export default function Home() {
+  const editorRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState('');
   const [quizLength, setQuizLength] = useState(10);
   const [questionType, setQuestionType] = useState('mixed');
@@ -28,7 +29,122 @@ export default function Home() {
 
   function handleSubmit(event: React.SyntheticEvent<HTMLFormElement, SubmitEvent>) {
     event.preventDefault();
-    if (canGenerate) setShowConfirmation(true);
+    if (canGenerate) {
+      const quizSeed = window.crypto.getRandomValues(new Uint32Array(1))[0];
+      window.sessionStorage.setItem('recall-quiz-setup', JSON.stringify({ notes, quizLength, questionType, difficulty, quizSeed }));
+      window.location.assign('/quiz');
+    }
+  }
+
+  function syncNotes() {
+    setNotes(editorRef.current?.innerText ?? '');
+    setShowConfirmation(false);
+  }
+
+  function formatInline(tag: 'strong' | 'em') {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) return;
+    const range = selection.getRangeAt(0);
+    const wrapper = document.createElement(tag);
+    wrapper.appendChild(range.extractContents());
+    range.insertNode(wrapper);
+    selection.removeAllRanges();
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(wrapper);
+    selection.addRange(nextRange);
+    syncNotes();
+  }
+
+  function formatList(tag: 'ul' | 'ol') {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) return;
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString().trim();
+    const list = document.createElement(tag);
+    const lines = selectedText ? selectedText.split(/\n+/) : [''];
+    for (const line of lines) {
+      const item = document.createElement('li');
+      item.textContent = line;
+      list.appendChild(item);
+    }
+    range.deleteContents();
+    range.insertNode(list);
+    selection.removeAllRanges();
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(list.lastElementChild ?? list);
+    nextRange.collapse(false);
+    selection.addRange(nextRange);
+    syncNotes();
+  }
+
+  function handleEditorKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Backspace') return;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) return;
+    const range = selection.getRangeAt(0);
+    const anchor = selection.anchorNode instanceof Element ? selection.anchorNode : selection.anchorNode?.parentElement;
+    const listItem = anchor?.closest('li');
+    const editor = editorRef.current;
+
+    if (!editor || !anchor) return;
+
+    if (!listItem || !editor.contains(listItem)) {
+      const block = anchor.closest<HTMLElement>('div, p, blockquote');
+      if (!block || block === editor || !editor.contains(block)) return;
+
+      const contentBeforeCaret = document.createRange();
+      contentBeforeCaret.selectNodeContents(block);
+      contentBeforeCaret.setEnd(range.startContainer, range.startOffset);
+      if (contentBeforeCaret.toString().length > 0) return;
+
+      const styles = window.getComputedStyle(block);
+      const isIndented = block.tagName === 'BLOCKQUOTE'
+        || Number.parseFloat(styles.marginLeft) > 0
+        || Number.parseFloat(styles.paddingLeft) > 0
+        || Number.parseFloat(styles.textIndent) > 0;
+      if (!isIndented) return;
+
+      event.preventDefault();
+      const paragraph = block.tagName === 'BLOCKQUOTE' ? document.createElement('div') : block;
+      if (paragraph !== block) {
+        while (block.firstChild) paragraph.appendChild(block.firstChild);
+        block.replaceWith(paragraph);
+      }
+      paragraph.style.setProperty('margin-left', '0', 'important');
+      paragraph.style.setProperty('padding-left', '0', 'important');
+      paragraph.style.setProperty('text-indent', '0', 'important');
+
+      const nextRange = document.createRange();
+      nextRange.selectNodeContents(paragraph);
+      nextRange.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(nextRange);
+      syncNotes();
+      return;
+    }
+
+    const contentBeforeCaret = document.createRange();
+    contentBeforeCaret.selectNodeContents(listItem);
+    contentBeforeCaret.setEnd(range.startContainer, range.startOffset);
+    if (contentBeforeCaret.toString().length > 0) return;
+
+    event.preventDefault();
+    const list = listItem.parentElement;
+    const paragraph = document.createElement('div');
+    while (listItem.firstChild) paragraph.appendChild(listItem.firstChild);
+    if (!paragraph.hasChildNodes()) paragraph.appendChild(document.createElement('br'));
+    list?.parentNode?.insertBefore(paragraph, list.nextSibling);
+    listItem.remove();
+    if (list && list.children.length === 0) list.remove();
+
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(paragraph);
+    nextRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    syncNotes();
   }
 
   return (
@@ -55,14 +171,34 @@ export default function Home() {
             <div>
               <div className="mb-3 flex items-end justify-between gap-4">
                 <div>
-                  <Label htmlFor="study-notes" className="text-[0.95rem] font-bold">Your study notes</Label>
+                  <Label id="study-notes-label" className="text-[0.95rem] font-bold">Your study notes</Label>
                   <p id="notes-help" className="mt-1.5 text-sm text-muted-foreground">Definitions, lecture notes, or a chapter summary all work well.</p>
                 </div>
                 <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{notes.length.toLocaleString()} characters</span>
               </div>
-              <div className="relative">
-                <Textarea id="study-notes" aria-describedby="notes-help" value={notes} onChange={(event) => { setNotes(event.target.value); setShowConfirmation(false); }} placeholder={'Paste your notes here…\n\nExample: Photosynthesis occurs in chloroplasts. Plants use light energy to convert carbon dioxide and water into glucose and oxygen.'} className="min-h-64 resize-y rounded-2xl border-border bg-card p-5 text-[0.95rem] leading-7 shadow-[0_1px_2px_rgb(18_40_32/4%),0_12px_35px_rgb(18_40_32/4%)] placeholder:text-muted-foreground/60 focus-visible:border-primary/60 focus-visible:ring-primary/15 sm:min-h-72" />
-                <div className="pointer-events-none absolute bottom-4 right-4 grid size-8 place-items-center rounded-lg border border-border bg-background text-muted-foreground shadow-sm"><FileText className="size-4" aria-hidden="true" /></div>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgb(18_40_32/4%),0_12px_35px_rgb(18_40_32/4%)] focus-within:border-primary/60 focus-within:ring-3 focus-within:ring-primary/15">
+                <div className="flex items-center gap-1 border-b border-border bg-muted/45 px-3 py-2" role="toolbar" aria-label="Text formatting">
+                  <button type="button" aria-label="Bold" title="Bold" onMouseDown={(event) => event.preventDefault()} onClick={() => formatInline('strong')} className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"><Bold className="size-4" /></button>
+                  <button type="button" aria-label="Italic" title="Italic" onMouseDown={(event) => event.preventDefault()} onClick={() => formatInline('em')} className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"><Italic className="size-4" /></button>
+                  <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+                  <button type="button" aria-label="Bulleted list" title="Bulleted list" onMouseDown={(event) => event.preventDefault()} onClick={() => formatList('ul')} className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"><List className="size-4" /></button>
+                  <button type="button" aria-label="Numbered list" title="Numbered list" onMouseDown={(event) => event.preventDefault()} onClick={() => formatList('ol')} className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"><ListOrdered className="size-4" /></button>
+                </div>
+                <div
+                  ref={editorRef}
+                  id="study-notes"
+                  role="textbox"
+                  tabIndex={0}
+                  aria-multiline="true"
+                  aria-labelledby="study-notes-label"
+                  aria-describedby="notes-help"
+                  contentEditable
+                  suppressContentEditableWarning
+                  data-placeholder="Paste your notes here…"
+                  onInput={syncNotes}
+                  onKeyDown={handleEditorKeyDown}
+                  className="min-h-64 resize-y overflow-auto p-5 text-[0.95rem] leading-7 outline-none empty:before:pointer-events-none empty:before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)] sm:min-h-72 [&_*]:!text-[0.95rem] [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_strong]:font-bold [&_em]:italic"
+                />
               </div>
             </div>
 
