@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpen, Check, FileText, Flag, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { saveQuizResult } from '@/lib/quiz-history';
 
 type QuizSetup = {
   notes: string;
@@ -176,7 +177,6 @@ export default function QuizPage() {
   const questions = setup ? generateQuestions(setup) : [];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [submitted, setSubmitted] = useState(false);
 
   if (!setup || questions.length === 0) {
     return (
@@ -192,6 +192,7 @@ export default function QuizPage() {
   }
 
   const question = questions[currentIndex];
+  const quizSetup = setup;
   const answeredCount = Object.keys(answers).length;
   const isLastQuestion = currentIndex === questions.length - 1;
   const allAnswered = answeredCount === questions.length;
@@ -199,7 +200,31 @@ export default function QuizPage() {
 
   function chooseAnswer(choiceIndex: number) {
     setAnswers((current) => ({ ...current, [currentIndex]: choiceIndex }));
-    setSubmitted(false);
+  }
+
+  function submitQuiz() {
+    if (!allAnswered) return;
+
+    const id = window.crypto.randomUUID();
+    const completedAt = new Date().toISOString();
+    const resultQuestions = questions.map((item, index) => ({
+      prompt: item.prompt,
+      choices: item.choices,
+      correctAnswer: item.answer,
+      selectedAnswer: answers[index],
+    }));
+    const score = resultQuestions.filter((item) => item.correctAnswer === item.selectedAnswer).length;
+
+    saveQuizResult({
+      id,
+      completedAt,
+      score,
+      totalQuestions: questions.length,
+      difficulty: quizSetup.difficulty,
+      questionType: quizSetup.questionType,
+      questions: resultQuestions,
+    });
+    window.location.assign(`/results?id=${encodeURIComponent(id)}`);
   }
 
   return (
@@ -253,7 +278,7 @@ export default function QuizPage() {
             {!isLastQuestion ? (
               <Button type="button" size="lg" onClick={() => setCurrentIndex((index) => index + 1)} className="h-11 rounded-xl px-5">Next question<ArrowRight data-icon="inline-end" /></Button>
             ) : (
-              <Button type="button" size="lg" disabled={!allAnswered || submitted} onClick={() => setSubmitted(true)} className="h-11 rounded-xl px-5 shadow-[0_10px_25px_rgb(30_94_70/18%)]">{submitted ? 'Submitted' : 'Submit quiz'}{submitted ? <Check data-icon="inline-end" /> : <Flag data-icon="inline-end" />}</Button>
+              <Button type="button" size="lg" disabled={!allAnswered} onClick={submitQuiz} className="h-11 rounded-xl px-5 shadow-[0_10px_25px_rgb(30_94_70/18%)]">Submit quiz<Flag data-icon="inline-end" /></Button>
             )}
           </nav>
           {isLastQuestion && !allAnswered && <p className="mt-4 text-center text-xs text-muted-foreground">Answer every question before submitting. Use Previous to revisit any you skipped.</p>}

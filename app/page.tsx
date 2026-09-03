@@ -2,7 +2,8 @@
 /* eslint-disable jsx-a11y/prefer-tag-over-role -- The rich-text editor requires contenteditable textbox semantics. */
 
 import { useRef, useState } from 'react';
-import { ArrowRight, Bold, BookOpen, Check, CircleHelp, Gauge, Italic, List, ListChecks, ListOrdered, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Bold, BookOpen, Check, CircleHelp, Gauge, History, Italic, List, ListChecks, ListOrdered, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
@@ -155,7 +156,7 @@ export default function Home() {
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm"><BookOpen className="size-4.5" aria-hidden="true" /></span>
             <span className="font-heading text-[1.05rem] font-bold tracking-[-0.025em]">Recall</span>
           </a>
-          <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm">New quiz</span>
+          <Link href="/history" className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"><History className="size-3.5" />Quiz history</Link>
         </div>
       </header>
 
